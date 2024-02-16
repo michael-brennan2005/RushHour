@@ -1,0 +1,33 @@
+Interfaces:
+IList<T> -
+represents a list with items of type T,
+we put all vehicles into an IList<Vehicle>
+
+Classes:
+Cons<T> imp IList<T> -
+represents a nonempty IList<T>
+
+MT<T> imp IList<T> -
+represents an empty IList<T>
+
+Vehicle -
+represents a vehicle on the level,
+can be vertical or horizontal and a car (length = 2) or a truck (length = 3),
+we move these vehicles around on the board to win the game
+
+Grid -
+represents the grid of the game,
+n x m grid, we place the vehicles and borders on the grid
+
+RushHour -
+represents the entire game, is a collection of
+above classes including vehicles and grid
+
+RushHourUtils -
+has the methods which we use to construct RushHour from a string
+including finding exit coords, constructing grid, etc.
+
+Tile
+DrawTilesOntoGrid
+TileGrid
+PlaceImage

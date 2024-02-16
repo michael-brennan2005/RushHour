@@ -1,0 +1,17 @@
+Rush Hour User Guide:
+To play the game,
+1. Create your level of choice. Make sure it makes sense and is solvable!
+To do so, input a String of your favorite level.
+- the letter "T" will represent the start of a vertical truck
+- "t" will represent the start of a horizontal truck.
+- "C" will represent the start of a vertical car
+- "c" will represent the start of a horizontal car.
+- "X" will represent the exit.
+- "+", "-" and "|" will be used to indicate the walls of the parking lot.
+- Spaces " " indicate nothing is in a given cell.
+As of right now, our methods allow:
+- rendering of levels as images
+- checking for overlapping vehicles
+- checking to see if the target vehicle overlaps the exit (win)
+- highlighting of vehicles when clicking
+In the future, we will support gameplay. Thanks!
