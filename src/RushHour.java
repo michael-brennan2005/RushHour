@@ -16,6 +16,9 @@ interface IList<T> {
 
   // Applies the function from left to right to each item in the list and combines them.
   <U> U fold(BiFunction<T, U, U> func, U value);
+
+  // Appends that list to this one, creating a new list.
+  IList<T> append(IList<T> that);
 }
 
 class Cons<T> implements IList<T> {
@@ -45,6 +48,11 @@ class Cons<T> implements IList<T> {
   public <U> U fold(BiFunction<T, U, U> func, U value) {
     return this.rest.fold(func, func.apply(this.first, value));
   }
+
+  // Appends that list to this one, creating a new list.
+  public IList<T> append(IList<T> that) {
+    return new Cons<T>(this.first, this.rest.append(that));
+  }
 }
 
 class MT<T> implements IList<T> {
@@ -64,6 +72,11 @@ class MT<T> implements IList<T> {
   // There are no elements to fold upon, so this produces whatever value was passed to it.
   public <U> U fold(BiFunction<T, U, U> func, U value) {
     return value;
+  }
+
+  // Appending any list to an empty list results in just that list.
+  public IList<T> append(IList<T> that) {
+    return that;
   }
 }
 
@@ -115,6 +128,20 @@ class TileGrid {
   int tileSize;
   IList<Tile> tiles;
 
+  public TileGrid(int cols, int rows, int tileSize, IList<Tile> tiles) {
+    this.cols = cols;
+    this.rows = rows;
+    this.tileSize = tileSize;
+    this.tiles = tiles;
+  }
+
+  public TileGrid(int cols, int rows, int tileSize) {
+    this.cols = cols;
+    this.rows = rows;
+    this.tileSize = tileSize;
+    this.tiles = new MT<>();
+  }
+
   WorldScene makeScene() {
     WorldScene base = new WorldScene(
             this.cols * this.tileSize,
@@ -125,9 +152,9 @@ class TileGrid {
                             this.rows * this.tileSize,
                             OutlineMode.SOLID,
                             Color.WHITE),
-                    0,
-                    0);
-    return ;
+                    (this.cols * this.tileSize) / 2,
+                    (this.rows * this.tileSize) / 2);
+    return this.tiles.fold(new DrawTilesOntoGrid(tileSize), base);
   };
 }
 class Vec2D {
@@ -479,10 +506,10 @@ class Main {
                     new Cons<>(
                             new Vehicle(1, 3, 1, 4, Color.YELLOW, 20),
                             new MT<>())));
-    Grid grid = new Grid(6, 6, 20);
 
-    Tile tile1 = new Tile(1,2,Color.RED);
-    tile1.drawOntoScene(new WorldScene(120,120), 10).saveImage("final.png");
+    Tile tile1 = new Tile(1,4,Color.RED);
+    TileGrid grid = new TileGrid(6, 6, 20, new Cons<>(tile1, new MT<>()));
+    grid.makeScene().saveImage("final.png");
     //RushHour game = new RushHour(vehicles, grid, 20);
     //grid.toImage().saveImage("final.png");
   }
