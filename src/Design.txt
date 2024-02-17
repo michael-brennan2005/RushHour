@@ -3,6 +3,11 @@ IList<T> -
 represents a list with items of type T,
 we put all vehicles into an IList<Vehicle>
 
+Optional<T> -
+represents a value that may or may not exist,
+we use this to keep track of the currently clicked vehicle - there may be a vehicle that was
+clicked, there may not be.
+
 Classes:
 Cons<T> imp IList<T> -
 represents a nonempty IList<T>
@@ -10,14 +15,16 @@ represents a nonempty IList<T>
 MT<T> imp IList<T> -
 represents an empty IList<T>
 
+None<T> imp Optional<T> -
+represents a value that does not exist
+
+Some<T> imp Optional<T> -
+represents a value that does exist
+
 Vehicle -
 represents a vehicle on the level,
 can be vertical or horizontal and a car (length = 2) or a truck (length = 3),
 we move these vehicles around on the board to win the game
-
-Grid -
-represents the grid of the game,
-n x m grid, we place the vehicles and borders on the grid
 
 RushHour -
 represents the entire game, is a collection of
@@ -27,7 +34,25 @@ RushHourUtils -
 has the methods which we use to construct RushHour from a string
 including finding exit coords, constructing grid, etc.
 
-Tile
-DrawTilesOntoGrid
-TileGrid
-PlaceImage
+Tile -
+Represents a tile on the game grid, has a column and row it should be placed at, as well as a color
+
+TileGrid -
+Represents a grid of tiles. An IList<Vehicles> will get transformed into an
+IList<Tile>, and then passed to this class to draw the game board.
+
+Function Objects:
+DrawTilesOntoGrid -
+Draws tiles onto a grid (the worldscene).
+
+FoldTileLists -
+Converts an IList<IList<Tile>> (generated from VehiclesToTileLists) into
+a IList<Tile> - just a flatten operation.
+
+VehiclesToTileLists -
+Converts an IList<Vehicle> into an IList<IList<Tile>>, where each tile list is the tiles that
+should be drawn for each vehicle.
+
+WasVehicleClicked -
+Given a tile (col, row) where a user clicked, finds out if they clicked
+a vehicle.

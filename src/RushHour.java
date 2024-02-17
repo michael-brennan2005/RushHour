@@ -6,6 +6,89 @@ import java.awt.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+// represents a value that may or may not exist
+interface Optional<T> {
+  // Is there some value?
+  boolean isSome();
+
+  // Unwraps the value, throwing a runtime exception if there is no value.
+  T unwrap();
+}
+
+// Represents a value that doesn't exist.
+class None<T> implements Optional<T> {
+  None() {}
+
+  /*
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+
+  /*
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+  // Always returns false.
+  public boolean isSome() {
+    return false;
+  }
+
+  /*
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+  // Throws an exception (there is no value).
+  public T unwrap() {
+    throw new RuntimeException("Cannot unwrap a None value.");
+  }
+}
+
+
+// Represents a value that doesn't exist.
+class Some<T> implements Optional<T> {
+  T value;
+
+
+  Some(T value) {
+    this.value = value;
+  }
+
+  /*
+  F:
+  value - T
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+
+  /*
+  F:
+  value - T
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+  // Always returns true.
+  public boolean isSome() {
+    return true;
+  }
+
+  /*
+  F:
+  value - T
+  M:
+  isSome() - boolean
+  unwrap() - T
+   */
+  // Returns the value.
+  public T unwrap() {
+    return this.value;
+  }
+}
+
 //represents a list of elements
 interface IList<T> {
   // Applies the func to all elements in the list.
@@ -160,25 +243,62 @@ class Tile {
     this.color = color;
   }
 
+  /*
+  F:
+  col - int
+  row - int
+  color - Color
+  M:
+  draw - WorldImage
+  drawOntoScene - WorldScene
+   */
+
+  /*
+  F:
+  col - int
+  row - int
+  color - Color
+  M:
+  draw - WorldImage
+  drawOntoScene - WorldScene
+  P:
+  tileSize - int
+   */
+  // Draw an individual tile, given a tile size.
   WorldImage draw(int tileSize) {
-    return new VisiblePinholeImage(
-            new RectangleImage(
-                    tileSize,
-                    tileSize,
-                    OutlineMode.SOLID,
-                    this.color
-            ).movePinhole(-0.5 * tileSize, -0.5 * tileSize)
-    );
+    return new RectangleImage(
+                  tileSize,
+                  tileSize,
+                  OutlineMode.SOLID,
+                  this.color
+          ).movePinhole(-0.5 * tileSize, -0.5 * tileSize);
   }
 
+  /*
+  F:
+  col - int
+  row - int
+  color - Color
+  M:
+  draw - WorldImage
+  drawOntoScene - WorldScene
+  P:
+  scene - WorldScene
+  tileSize - int
+  MoP:
+  scene.placeImageXY - WorldScene
+   */
+  // Draw an individual tile onto a given scene, given a tile size.
   WorldScene drawOntoScene(WorldScene scene, int tileSize) {
     return scene.placeImageXY(this.draw(tileSize),
             this.col * tileSize, this.row * tileSize);
   }
 }
 
+// Used to draw tiles onto a world scene.
 class DrawTilesOntoGrid implements BiFunction<Tile, WorldScene, WorldScene> {
   int tileSize;
+
   DrawTilesOntoGrid(int tileSize) {
     this.tileSize = tileSize;
   }
@@ -192,56 +312,199 @@ class DrawTilesOntoGrid implements BiFunction<Tile, WorldScene, WorldScene> {
 class TileGrid {
   int cols;
   int rows;
+  int exitCol;
+  int exitRow;
   int tileSize;
-  IList<Tile> tiles;
 
-  public TileGrid(int cols, int rows, int tileSize, IList<Tile> tiles) {
+  public TileGrid(int cols, int rows, int tileSize, int exitCol, int exitRow) {
     this.cols = cols;
     this.rows = rows;
+    this.exitCol = exitCol;
+    this.exitRow = exitRow;
     this.tileSize = tileSize;
-    this.tiles = tiles;
   }
 
-  public TileGrid(int cols, int rows, int tileSize) {
-    this.cols = cols;
-    this.rows = rows;
-    this.tileSize = tileSize;
-    this.tiles = new MT<>();
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+   */
+
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+   */
+  // Get the width in pixels of the tile grid.
+  int totalWidth() {
+    return this.cols * this.tileSize;
   }
 
-  WorldScene makeScene() {
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+   */
+  // Get the height in pixels of the tile grid.
+  int totalHeight() {
+    return this.rows * this.tileSize;
+  }
+
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+  P:
+  tiles - IList<Tile>
+  tileSize - int
+  MoP:
+  tiles.map - IList<U>
+  tiles.filter - IList<Tile>
+  tiles.fold - IList<U>
+  tiles.append - IList<T>
+   */
+  // Create a scene from the tile grid, the given tiles to draw, and a size for each tile.
+  WorldScene makeScene(IList<Tile> tiles, int tileSize) {
+    IList<Tile> tilesWithBorder = tiles.append(this.createBorderTiles(tileSize));
     WorldScene base = new WorldScene(
-            this.cols * this.tileSize,
-            this.rows * this.tileSize)
+            this.cols * tileSize,
+            this.rows * tileSize)
             .placeImageXY(
                     new RectangleImage(
-                            this.cols * this.tileSize,
-                            this.rows * this.tileSize,
+                            this.cols * tileSize,
+                            this.rows * tileSize,
                             OutlineMode.SOLID,
                             Color.WHITE),
-                    (this.cols * this.tileSize) / 2,
-                    (this.rows * this.tileSize) / 2);
-    return this.tiles.fold(new DrawTilesOntoGrid(tileSize), base);
-  };
-  */
-}
-
-/*
-class Vec2D {
-  int x;
-  int y;
-
-  Vec2D(int x, int y) {
-    this.x = x;
-    this.y = y;
+                    (this.cols * tileSize) / 2,
+                    (this.rows * tileSize) / 2);
+    return tilesWithBorder.fold(new DrawTilesOntoGrid(tileSize), base);
   }
 
-  public boolean isStraight(Vec2D that) {
-    return this.y == that.y
-            || this.x == that.x;
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+   */
+  // Create the border tiles for the grid.
+  IList<Tile> createBorderTiles(int tileSize) {
+    // assume x is always on right side
+    IList<Tile> topBorder = createBorderTilesHelper(
+            0,
+            0,
+            this.cols - 1,
+            0,
+            Color.DARK_GRAY,
+            tileSize);
+    IList<Tile> bottomBorder = createBorderTilesHelper(
+            0,
+            this.rows - 1,
+            this.cols - 1,
+            this.rows - 1,
+            Color.DARK_GRAY,
+            tileSize);
+    IList<Tile> leftBorder = createBorderTilesHelper(
+            0,
+            0,
+            0,
+            this.rows - 1,
+            Color.DARK_GRAY,
+            tileSize
+    );
+    IList<Tile> topRightBorder = createBorderTilesHelper(
+            this.cols - 1,
+            0,
+            this.cols - 1,
+            this.exitRow - 1,
+            Color.DARK_GRAY,
+            tileSize
+    );
+    IList<Tile> bottomRightBorder = createBorderTilesHelper(
+            this.cols - 1,
+            this.exitRow + 1,
+            this.cols - 1,
+            this.rows - 1,
+            Color.DARK_GRAY,
+            tileSize
+    );
+    return topBorder
+            .append(bottomBorder)
+            .append(leftBorder)
+            .append(topRightBorder)
+            .append(bottomRightBorder);
+  }
+
+  /*
+  F:
+  cols - int
+  rows - int
+  exitCol - int
+  exitRow - int
+  tileSize - int
+  M:
+  totalWidth - int
+  totalHeight - int
+  makeScene - WorldScene
+  P:
+  x1 - int
+  y1 - int
+  x2 - int
+  y2 - int
+  color - Color
+   */
+  // Create a line of tiles, from one point to the next point.
+  IList<Tile> createBorderTilesHelper(int x1, int y1, int x2, int y2, Color color, int tileSize) {
+    if (x1 != x2 && y1 != y2) {
+      throw new IllegalArgumentException("createBorderTiles is only for straight lines");
+    }
+
+    if ((x2 - x1) > 0) {
+      return new Cons<>(
+              new Tile(x1,y1, color),
+              createBorderTilesHelper(x1 + 1, y1, x2, y2, color, tileSize));
+    } else if ((y2 - y1) > 0) {
+      return new Cons<>(
+              new Tile(x1,y1, color),
+              createBorderTilesHelper(x1,y1 + 1, x2, y2, color, tileSize));
+    } else {
+      return new Cons<>(new Tile(x1,y1, color), new MT<>());
+    }
   }
 }
- */
 
 //represents a vehicle in the RushHour game
 class Vehicle {
@@ -280,20 +543,6 @@ class Vehicle {
   n/a
    */
 
-  /*
-  P:
-  MoP:
-   */
-
-  // Produces an image of the vehicle, given a tile size (how big 1 grid square is on
-  // each side)
-  WorldImage toImage() {
-    return new RectangleImage(
-            this.width() * this.tileSize,
-            this.height() * this.tileSize,
-            OutlineMode.SOLID,
-            this.color);
-  }
 
   /*
   P:
@@ -377,93 +626,119 @@ class Vehicle {
     return ((this.x1 == x && this.y1 == y)
             || (this.x2 == x && this.y2 == y));
   }
+
+  /*
+  P:
+  MoP:
+   */
+  // creates the tiles of this vehicle, to be used for drawing it on a gameboard.
+  public IList<Tile> toTiles() {
+    if (this.width() > this.height()) { // horizontal car/truck
+      return toTilesHelper(new MT<>(), this.x1, this.y1, 1, 0);
+    } else { // vertical car/truck
+      return toTilesHelper(new MT<>(), this.x1, this.y1, 0, 1);
+    }
+  }
+
+  /*
+  P:
+  newColor - Color
+  MoP:
+   */
+  // creates the tiles of this vehicle, to be used for drawing it on a gameboard,
+  // and specifies a specific color to draw as.
+  public IList<Tile> toTilesWithColor(Color newColor) {
+    return new Vehicle(this.x1, this.y1, this.x2, this.y2, newColor, this.tileSize).toTiles();
+  }
+
+  /*
+  P:
+  tilesSoFar - IList<Tile>
+  currentX - int
+  currentY - int
+  deltaX - int
+  deltaY - int
+  MoP:
+  tilesSoFar.map - IList<U>
+  tilesSoFar.filter - IList<Tile>
+  tilesSoFar.fold - IList<U>
+  tilesSoFar.append - IList<T>
+   */
+  // helper for toTiles; adds the tiles to the work list and checks if more tiles need to be added.
+  public IList<Tile> toTilesHelper(
+          IList<Tile> tilesSoFar,
+          int currentX,
+          int currentY,
+          int deltaX,
+          int deltaY) {
+    IList<Tile> tiles = new Cons<>(new Tile(currentX, currentY, this.color), tilesSoFar);
+    if (currentX == this.x2 && currentY == this.y2) {
+      return tiles;
+    } else {
+      return this.toTilesHelper(
+              tiles,
+              currentX + deltaX,
+              currentY + deltaY,
+              deltaX,
+              deltaY);
+    }
+  }
+
+  /*
+  P:
+  col - int
+  row - int
+  MoP:
+   */
+  // Does this vehicle occupy this given tile?
+  public boolean inTile(int col, int row) {
+    // horizontal car
+    if ((x2 - x1) == 0 && col == x1 && y1 <= row && row <= y2) { // vertical car
+      return true;
+    } else {
+      return (y2 - y1) == 0 && row == y1 && x1 <= col && col <= x2;
+    }
+  }
 }
 
-class PlaceVehiclesOntoImage implements BiFunction<Vehicle, WorldImage, WorldImage> {
-
-  public WorldImage apply(Vehicle vehicle, WorldImage image) {
-    return new PlaceImage(image, vehicle.toImage(), vehicle.x1, vehicle.y1).toImage();
+// Convert a list of vehicles into a list of tile lists
+// (each tile list representing the tiles to draw for each vehicle).
+class VehiclesToTileLists implements Function<Vehicle, IList<Tile>> {
+  public IList<Tile> apply(Vehicle vehicle) {
+    return vehicle.toTiles();
   }
 }
 
-//represents the playing board of RushHour
-class Grid {
-  int rows;
-  int cols;
-  int tileSize;
+class WasVehicleClicked implements BiFunction<Vehicle, Optional<Vehicle>, Optional<Vehicle>> {
+  int tileX;
+  int tileY;
 
-  public Grid(int rows, int cols, int tileSize) {
-    this.rows = rows;
-    this.cols = cols;
-    this.tileSize = tileSize;
+  public WasVehicleClicked(int tileX, int tileY) {
+    this.tileX = tileX;
+    this.tileY = tileY;
   }
 
-  /*
-  F:
-  rows -- int
-  cols -- int
-  tileSize -- int
-  M:
-  totalWidth -- int
-  totalHeight -- int
-  toImage -- WorldImage
-  MoF:
-   */
-
-  /*
-  P:
-  MoP:
-   */
-
-  //calculates the totalWidth of this Grid
-  int totalWidth() {
-    return cols * tileSize;
+  public Optional<Vehicle> apply(Vehicle vehicle, Optional<Vehicle> vehicleOptional) {
+    if (vehicle.inTile(tileX, tileY)) {
+      return new Some<>(vehicle);
+    } else {
+      return vehicleOptional;
+    }
   }
+}
 
-  /*
-  P:
-  MoP:
-   */
-
-  //calculates the totalHeight of this Grid
-  int totalHeight() {
-    return rows * tileSize;
-  }
-
-  /*
-  P:
-  MoP:
-   */
-
-  // Produces an image of an empty grid.
-  WorldImage toImage() {
-    WorldImage base = new VisiblePinholeImage(
-            new RectangleImage(
-                    this.tileSize * this.cols,
-                    this.tileSize * this.rows,
-                    OutlineMode.SOLID,
-                    Color.WHITE)
-                    .movePinholeTo(
-                            new Posn(
-                                    (int)((this.tileSize * this.cols) / -2.0),
-                                    (int)((this.tileSize * this.rows) / -2.0))));
-    WorldImage addTopBorder = new PlaceImage(
-            base,
-            new RectangleImage(
-                    this.tileSize * this.cols,
-                    this.tileSize,
-                    OutlineMode.SOLID,
-                    Color.GRAY),
-            0,
-            0).toImage();
-    return addTopBorder;
+// Flattens a 2d list of tiles into a 1d list of tiles.
+class FoldTileLists implements BiFunction<IList<Tile>, IList<Tile>, IList<Tile>> {
+  public IList<Tile> apply(IList<Tile> tilesSoFar, IList<Tile> tilesToAdd) {
+    return tilesSoFar.append(tilesToAdd);
   }
 }
 
 //represents the game RushHour with all its components
 class RushHour extends World {
   IList<Vehicle> vehicles;
-  Grid grid;
+  Optional<Vehicle> currentVehicleClicked;
+  TileGrid tileGrid;
   RushHourUtils utils;
   int tileSize;
   Vehicle targetVehicle;
@@ -471,23 +746,25 @@ class RushHour extends World {
   int endY;
 
 
-  RushHour(IList<Vehicle> vehicles, Grid board, int tileSize,
+  RushHour(IList<Vehicle> vehicles, TileGrid board, int tileSize,
            Vehicle targetVehicle, int endX, int endY) {
     super();
     this.vehicles = vehicles;
-    this.grid = board;
+    this.tileGrid = board;
     this.tileSize = tileSize;
     this.utils = new RushHourUtils();
     this.targetVehicle = targetVehicle;
     this.endX = endX;
     this.endY = endY;
+    this.currentVehicleClicked = new None<>();
   }
 
   /*
   F:
   vehicles -- IList<Vehicle>
-  grid -- Grid
+  grid -- tileGrid
   utils -- RushHourUtils
+  currentVehicleClicked -- Optional<Vehicle>
   tileSize -- int
   targetVehicle -- Vehicle
   endX -- int
@@ -514,23 +791,12 @@ class RushHour extends World {
   RushHour(String level, RushHourUtils utils, int tileSize) {
     this(utils.getVehiclesList(level, level.length(),
                     0, 0, 0, new MT<Vehicle>(), tileSize),
-            utils.getGrid(level, 0, 0, 0, tileSize),
+            utils.getTileGrid(level, 0, 0, 0, tileSize),
             tileSize,
     //below vehicle seems to be the same target everytime
     new Vehicle(1, 3, 2, 3, Color.RED, tileSize),
-            utils.getEndX(level, 0, 0, 0, tileSize),
-            utils.getEndY(level, 0, 0, 0, tileSize));
-  }
-
-  /*
-  P:
-  MoP;
-   */
-
-  //converts RushHour to a WorldImage
-  WorldImage toImage() {
-    return this.vehicles
-            .fold(new PlaceVehiclesOntoImage(), this.grid.toImage());
+                utils.getEndX(level, 0, 0, 0),
+                utils.getEndY(level, 0, 0, 0));
   }
 
   /*
@@ -540,7 +806,16 @@ class RushHour extends World {
 
   //creates a WorldScene
   public WorldScene makeScene() {
-    return new WorldScene(grid.totalWidth(), grid.totalHeight());
+    if (this.currentVehicleClicked.isSome()) {
+      IList<Tile> vehicleTiles =
+              this.vehicles.map(new VehiclesToTileLists()).fold(new FoldTileLists(), new MT<>())
+                      .append(this.currentVehicleClicked.unwrap().toTilesWithColor(Color.YELLOW));
+      return this.tileGrid.makeScene(vehicleTiles, this.tileSize);
+    } else {
+      IList<Tile> vehicleTiles = this.vehicles.map(
+              new VehiclesToTileLists()).fold(new FoldTileLists(), new MT<>());
+      return this.tileGrid.makeScene(vehicleTiles, this.tileSize);
+    }
   }
 
   /*
@@ -551,6 +826,19 @@ class RushHour extends World {
   //determines if this RushHour has been won
   public boolean winCheck() {
     return this.targetVehicle.atLocation(this.endX, this.endY);
+  }
+
+  // handles mouse clicks.
+  // EFFECT: alters the currentClickedVehicle field (will become a Some value if a vehicle was
+  // clicked, None if no vehicle was).
+  public World onMouseClicked(Posn mouse) {
+    int tileX = mouse.x / this.tileSize;
+    int tileY = mouse.y / this.tileSize;
+
+    this.currentVehicleClicked = this.vehicles.fold(
+            new WasVehicleClicked(tileX, tileY),
+            new None<>());
+    return this;
   }
 }
 
@@ -595,7 +883,7 @@ class RushHourUtils {
                               //length = 3, but add 2 because starting posn = 1 block
                               c,
                               r + 2,
-                              Color.YELLOW,
+                              Color.ORANGE,
                               tileSize),
                       currList), tileSize);
     } else if (currLetter.equals("t")) {
@@ -655,18 +943,23 @@ class RushHourUtils {
    */
 
   //determines the dimensions of level and creates a Grid from them
-  public Grid getGrid(String level, int i, int r, int currCol, int tileSize) {
+  public TileGrid getTileGrid(String level, int i, int r, int currCol, int tileSize) {
     String currLetter = level.substring(i, i + 1);
     if (i == level.length() - 1) {
       //0 index
-      return new Grid(r, currCol, tileSize);
+      return new TileGrid(
+              currCol + 1,
+              r + 1,
+              tileSize,
+              this.getEndX(level, 0, 0, 0),
+              this.getEndY(level, 0, 0, 0));
     } else if (currCol == 0
             || (!currLetter.equals("+")
             && !currLetter.equals("|")
             && !currLetter.equals("X"))) {
-      return this.getGrid(level, i + 1, r, currCol + 1, tileSize);
+      return this.getTileGrid(level, i + 1, r, currCol + 1, tileSize);
     } else {
-      return this.getGrid(level, i + 1, r + 1, 0, tileSize);
+      return this.getTileGrid(level, i + 1, r + 1, 0, tileSize);
     }
   }
 
@@ -681,16 +974,16 @@ class RushHourUtils {
    */
 
   //find the end position and returns the x value of that coordinate
-  public int getEndX(String level, int i, int r, int currCol, int tileSize) {
+  public int getEndX(String level, int i, int r, int currCol) {
     String currLetter = level.substring(i, i + 1);
     if (currLetter.equals("X")) {
     return currCol;
     } else if (currCol == 0
-            || (!currLetter.equals("+")
-            && !currLetter.equals("|"))) {
-      return this.getEndX(level, i + 1, r, currCol + 1, tileSize);
+              || (!currLetter.equals("+")
+              && !currLetter.equals("|"))) {
+      return this.getEndX(level, i + 1, r, currCol + 1);
     } else {
-      return this.getEndX(level, i + 1, r + 1, 0, tileSize);
+      return this.getEndX(level, i + 1, r + 1, 0);
     }
   }
 
@@ -705,65 +998,17 @@ class RushHourUtils {
    */
 
   //find the end position and returns the y value of that coordinate
-  public int getEndY(String level, int i, int r, int currCol, int tileSize) {
+  public int getEndY(String level, int i, int r, int currCol) {
     String currLetter = level.substring(i, i + 1);
     if (currLetter.equals("X")) {
       return r;
     } else if (currCol == 0
             || (!currLetter.equals("+")
             && !currLetter.equals("|"))) {
-      return this.getEndY(level, i + 1, r, currCol + 1, tileSize);
+      return this.getEndY(level, i + 1, r, currCol + 1);
     } else {
-      return this.getEndY(level, i + 1, r + 1, 0, tileSize);
+      return this.getEndY(level, i + 1, r + 1, 0);
     }
-  }
-}
-
-//represents a place image function
-class PlaceImage {
-  WorldImage base;
-  WorldImage top;
-  double offsetX;
-  double offsetY;
-
-  public PlaceImage(WorldImage base, WorldImage top, int offsetX, int offsetY) {
-    this.base = base;
-    this.top = top;
-    this.offsetX = offsetX;
-    this.offsetY = offsetY;
-  }
-
-  WorldImage toImage() {
-    return new OverlayImage(
-            this.base.movePinholeTo(
-                    new Posn(
-                            (int)((-1.0 * this.base.getWidth() / 2.0)),
-                            (int)((-1.0 * this.base.getHeight() / 2.0))))
-                    .movePinhole(this.offsetX, this.offsetY),
-            this.top.movePinholeTo(
-                    new Posn(
-                            (int)((-1.0 * this.top.getWidth() / 2.0)),
-                            (int)((-1.0 * this.top.getHeight() / 2.0))
-                    )
-            )).movePinholeTo(new Posn(0, 0));
-  }
-}
-
-class Main {
-  public static void main(String[] args) {
-    IList<Vehicle> vehicles = new Cons<>(
-            new Vehicle(1, 1, 1, 2, Color.RED, 20),
-            new Cons<>(
-                    new Vehicle(2, 3, 4, 3, Color.BLUE, 20),
-                    new Cons<>(
-                            new Vehicle(1, 3, 1, 4, Color.YELLOW, 20),
-                            new MT<>())));
-
-    Tile tile1 = new Tile(1,4,Color.RED);
-    TileGrid grid = new TileGrid(6, 6, 20, new Cons<>(tile1, new MT<>()));
-    grid.makeScene().saveImage("final.png");
-    //RushHour game = new RushHour(vehicles, grid, 20);
-    //grid.toImage().saveImage("final.png");
   }
 }
 
@@ -790,7 +1035,7 @@ class ExamplesRushHour {
           20);
   RushHour game3 = new RushHour(
           this.game2.vehicles,
-          this.game2.grid,
+          this.game2.tileGrid,
           20,
           new Vehicle(5, 3, 6, 3,
                   Color.RED, 20),
@@ -800,32 +1045,32 @@ class ExamplesRushHour {
   Vehicle car2 = new Vehicle(2, 2, 3, 2, Color.BLUE, 20);
   Vehicle truck1 = new Vehicle(1, 1, 1, 3, Color.BLUE, 20);
   Vehicle truck2 = new Vehicle(1, 2, 1, 4, Color.BLUE, 20);
-  Grid gridEx = new Grid(8, 7, 20);
+  TileGrid gridEx = new TileGrid(8, 7, 20, 7, 3);
 
   boolean testConstructor(Tester t) {
-    return t.checkExpect(game1.grid,
+    return t.checkExpect(game1.tileGrid,
             //we are going to zero index
-            new Grid(7, 7, 20))
-            && t.checkExpect(game2.grid,
-            new Grid(5, 6, 20))
+            new TileGrid(8, 8, 20, 7, 3))
+            && t.checkExpect(game2.tileGrid,
+            new TileGrid(7, 6, 20, 6, 3))
             && t.checkExpect(game2.vehicles,
-            new Cons<Vehicle>(
+            new Cons<>(
                     new Vehicle(1, 4, 3, 4,
                             Color.green,
                             20),
-                    new Cons<Vehicle>(
+                    new Cons<>(
                             new Vehicle(1, 3, 2, 3,
                                     Color.magenta,
                                     20),
-                            new Cons<Vehicle>(
+                            new Cons<>(
                                     new Vehicle(5, 2, 5, 4,
-                                            Color.yellow,
+                                            Color.ORANGE,
                                             20),
-                                    new Cons<Vehicle>(
+                                    new Cons<>(
                                             new Vehicle(3, 2, 3, 3,
                                                     Color.blue,
                                                     20),
-                                            new MT<Vehicle>())))));
+                                            new MT<>())))));
   }
 
   boolean testOverlap(Tester t) {
@@ -853,8 +1098,8 @@ class ExamplesRushHour {
             && t.checkExpect(truck1.width(), 1)
             && t.checkExpect(truck2.height(), 3)
             && t.checkExpect(truck1.height(), 3)
-            && t.checkExpect(gridEx.totalHeight(), 160)
-            && t.checkExpect(gridEx.totalWidth(), 140);
+            && t.checkExpect(gridEx.totalHeight(), 140)
+            && t.checkExpect(gridEx.totalWidth(), 160);
   }
 
   boolean testAtLocation(Tester t) {
@@ -875,7 +1120,7 @@ class ExamplesRushHour {
     return t.checkExpect(utils.getVehiclesList(level,
             //  T yellow, t green, C blue, c magenta
             level.length(), 0, 0, 0,
-            new MT<Vehicle>(), 20),
+                    new MT<>(), 20),
             new Cons<>(
                     new Vehicle(5, 6, 6, 6,
                             Color.MAGENTA, 20),
@@ -895,10 +1140,99 @@ class ExamplesRushHour {
                                                             new Vehicle(3, 2, 3, 3,
                                                                     Color.BLUE, 20),
                                                             new MT<>())))))))
-            && t.checkExpect(utils.getGrid(level, 0, 0, 0, 20),
-            new Grid(7, 7, 20))
-            && t.checkExpect(utils.getEndX(level, 0, 0, 0, 20),
+            && t.checkExpect(utils.getTileGrid(level, 0, 0, 0, 20),
+            new TileGrid(8, 8, 20, 7, 3))
+            && t.checkExpect(utils.getEndX(level, 0, 0, 0),
             7)
-            && t.checkExpect(utils.getEndY(level, 0, 0, 0, 20),
+            && t.checkExpect(utils.getEndY(level, 0, 0, 0),
             3);
   }
+
+  boolean testVehicleToTiles(Tester t) {
+    Vehicle vehicle = new Vehicle(1,1,1,4,Color.RED, 20);
+    return t.checkExpect(
+            vehicle.toTiles(),
+            new Cons<>(
+                    new Tile(1,4, Color.RED),
+                    new Cons<>(
+                            new Tile(1, 3, Color.RED),
+                            new Cons<>(
+                                    new Tile(1, 2, Color.RED),
+                                    new Cons<>(
+                                            new Tile(1, 1, Color.RED),
+                                            new MT<>()
+                                    )
+                            )
+                    )));
+  }
+
+  boolean testVehicleToTiles2(Tester t) {
+    Vehicle vehicle = new Vehicle(1,1,2,1,Color.RED, 20);
+    return t.checkExpect(
+            vehicle.toTiles(),
+            new Cons<>(
+                    new Tile(2,1, Color.RED),
+                    new Cons<>(
+                            new Tile(1, 1, Color.RED),
+                            new MT<>())));
+  }
+
+  boolean testFoldTileLists(Tester t) {
+    IList<IList<Tile>> tileLists = new Cons<>(
+            new Cons<>(new Tile(1,1, Color.RED), new MT<>()),
+            new Cons<>(
+                    new Cons<>(new Tile(1, 2, Color.RED), new MT<>()),
+                    new Cons<>(
+                            new Cons<>(new Tile(1, 3, Color.RED), new MT<>()),
+                            new MT<>())));
+    IList<Tile> expectedTileList = new Cons<>(
+            new Tile(1,3, Color.RED),
+            new Cons<>(
+                    new Tile(1, 2, Color.RED),
+                    new Cons<>(
+                            new Tile(1, 1, Color.RED),
+                            new MT<>())));
+    return t.checkExpect(tileLists.fold(new FoldTileLists(), new MT<>()), expectedTileList);
+  }
+
+  boolean testCreateBorderTilesHelper(Tester t) {
+    TileGrid grid = new TileGrid(1,1,1,1,1);
+    return t.checkExpect(
+            grid.createBorderTilesHelper(0,0,2,0, Color.RED, 20),
+            new Cons<>(
+                    new Tile(0,0, Color.RED),
+                    new Cons<>(
+                            new Tile(1, 0, Color.RED),
+                            new Cons<>(
+                                    new Tile(2, 0, Color.RED),
+                                    new MT<>()
+                            )
+                    )));
+  }
+
+  boolean testInTile(Tester t) {
+    Vehicle vehicle = new Vehicle(1,1,3,1,Color.RED, 20);
+    return t.checkExpect(vehicle.inTile(1,1), true)
+            && t.checkExpect(vehicle.inTile(3,1), true)
+            && t.checkExpect(vehicle.inTile(2,1), true)
+            && t.checkExpect(vehicle.inTile(1, 2), false);
+  }
+
+  boolean testOnMouseClicked(Tester t) {
+    RushHour game = new RushHour(
+            "+------+"
+                    + "|      |"
+                    + "|  C T |"
+                    + "|c    CX"
+                    + "|t     |"
+                    + "|CCC c |"
+                    + "|    c |"
+                    + "+------+",
+            new RushHourUtils(),
+            20);
+    game.onMouseClicked(new Posn(30, 70));
+    return t.checkExpect(
+            game.currentVehicleClicked,
+            new Some<>(new Vehicle(1, 3, 2, 3, Color.MAGENTA, 20)));
+  }
+}
